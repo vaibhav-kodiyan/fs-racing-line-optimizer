@@ -50,6 +50,11 @@ def run_animation(sim, telemetry_cb=None):
         imu_ln1.set_data(t_hist, ax_hist); imu_ln2.set_data(t_hist, ay_hist); imu_ln3.set_data(t_hist, gz_hist)
         for ax in (ax_speed, ax_curv, ax_imu): ax.relim(); ax.autoscale_view()
         return (coneL_sc, coneR_sc, center_ln, car_poly, speed_ln, curv_ln, imu_ln1, imu_ln2, imu_ln3)
-    ani = animation.FuncAnimation(fig, update, init_func=init, interval=30, blit=False)
+    # Set a large but finite number of frames to cache (1000 frames = ~30 seconds at 30fps)
+    ani = animation.FuncAnimation(
+        fig, update, init_func=init, interval=30, blit=False, 
+        save_count=1000, cache_frame_data=True
+    )
     fig._ani = ani
-    plt.tight_layout(); plt.show()
+    plt.tight_layout()
+    plt.show()
