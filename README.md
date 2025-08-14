@@ -170,3 +170,56 @@ The default `data/sample_cones.json` now includes:
 
 - If `pip install -r requirements.txt` fails with externally-managed environment, use the Virtual Environment steps above.
 - If `pytest` is not found, install via your venv or system package manager, or run `pip install -e ".[dev]"`.
+
+## Command-line Options
+
+The simulator accepts the following argument:
+
+```bash
+python main.py --cones PATH/TO/CONES.json
+```
+
+- `--cones`: Path to a cones JSON file (defaults to `data/sample_cones.json`).
+
+## Cones JSON Format
+
+The expected schema is:
+
+```json
+{
+  "left":  [[x0, y0], [x1, y1], ...],
+  "right": [[x0, y0], [x1, y1], ...]
+}
+```
+
+- Coordinates are in meters in a common 2D plane.
+- Arrays can be of different lengths; the planner will pair greedily and order them.
+
+## Repository Structure
+
+- `fmsim/models.py`: Vehicle parameters, kinematic bicycle, pure-pursuit controller
+- `fmsim/planner.py`: Cone pairing, polyline ordering, smoothing, curvature
+- `fmsim/ui.py`: Matplotlib-based visualization and animation
+- `fmsim/utils.py`: I/O utilities (e.g., `load_cones_json`)
+- `data/sample_cones.json`: Example track cones
+- `tests/`: Unit tests for planner and controller
+- `main.py`: Entry-point to run the simulator
+
+## Changelog
+
+### v2.0
+
+- Controller: speed-aware lookahead, vehicle-frame geometry, robust target selection
+- Model: yaw normalization, velocity non-negativity, steering clamp
+- Planner: KD-tree pairing, convergence-aware smoothing, geometric curvature
+- UI: animation cache warning fixed, minor layout polish
+- Packaging: editable install via `pyproject.toml` and `setup.py`
+- Data: challenging sample track with S-curves and chicanes
+- Docs: expanded README with setup, run, controls, and troubleshooting
+
+## Known Limitations / Future Work
+
+- Pure pursuit can cut apexes aggressively on very tight S-curves; consider Stanley/MPPI
+- Smoothing is Laplacian-based; an optimization-based corridor solver could yield faster lines
+- No longitudinal tire/traction limits; current accel is a simple proportional target
+- No noise/latency in the loop; add for robustness testing
