@@ -1,0 +1,4 @@
+numpy>=1.22
+matplotlib>=3.5
+pytest>=7.0
+flake8>=6.0

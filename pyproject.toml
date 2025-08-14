@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fs-racing-line-optimizer"
+version = "0.1.0"
+description = "Formula Student cone-track planner and simulator using a least-curvature proxy."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Your Name", email = "you@example.com"}]
+license = {text = "MIT"}
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = "E203,W503"
