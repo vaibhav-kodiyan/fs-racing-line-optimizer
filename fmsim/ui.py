@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import traceback
-# (same content as the "new" side of the diff above; paste it fully here)
-# For brevity: use the entire block from the diff's "new" file
-def run_animation(sim, telemetry_cb=None):
+
+def run_animation(sim):
     fig = plt.figure(figsize=(10, 6))
     gs = fig.add_gridspec(2, 3, width_ratios=[2, 1, 1])
     ax_main = fig.add_subplot(gs[:, 0]); ax_speed = fig.add_subplot(gs[0, 1])

@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
-import os, sys, argparse, numpy as np, matplotlib
+import os, argparse, numpy as np, matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT not in sys.path: sys.path.insert(0, ROOT)
-from fmsim.utils import load_cones_json
+from fmsim.utils import load_cones_json, car_triangle
 from fmsim.planner import laplacian_smooth, curvature_discrete, pair_cones_to_midline
 from fmsim.models import VehicleParams, BicycleKinematic, pure_pursuit_control
-def car_triangle(x, y, yaw, scale=0.8):
-    pts = np.array([[1.0, 0.0], [-0.6, 0.4], [-0.6, -0.4], [1.0, 0.0]]) * scale
-    R = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
-    return (R @ pts.T).T + np.array([x, y])
 def run_once(cones_path):
     left, right = load_cones_json(cones_path)
     mid_raw = pair_cones_to_midline(left, right)
