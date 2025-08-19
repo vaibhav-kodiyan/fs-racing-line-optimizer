@@ -1,225 +1,203 @@
 # Formula Student Racing Line Optimizer
 
-A Python-based racing line optimization system for Formula Student/SAE competition, featuring advanced path planning and vehicle control algorithms.
+Plan, optimize, and simulate racing lines for cone‑delineated Formula Student tracks.
 
-## Features
+## Table of Contents
+- [Overview](#overview)
+- [Core Components](#core-components)
+- [Quickstart](#quickstart)
+- [Usage](#usage)
+- [Data Format](#data-format)
+- [Examples & Recipes](#examples--recipes)
+- [API Quick Reference](#api-quick-reference)
+- [Architecture](#architecture)
+- [Performance & Limits](#performance--limits)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Testing & QA](#testing--qa)
+- [Optional next tweaks](#optional-next-tweaks)
+- [Security](#security)
+- [FAQ](#faq)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
-- **Path Planning**
-  - Robust cone pairing algorithm for track boundary detection
-  - Laplacian smoothing with corridor constraints
-  - Curvature-aware path optimization
-  - Support for complex track layouts
+## Overview
+The toolkit turns cone positions into drivable paths and evaluates control strategies in a lightweight simulator.
 
-- **Vehicle Control**
-  - Pure Pursuit path following controller
-  - Kinematic bicycle model for vehicle dynamics
-  - Adaptive lookahead distance based on speed
-  - Robust to sensor noise and imperfect path data
+### Highlights
+- Hungarian or greedy cone pairing with geometric ordering
+- Laplacian/spline smoothing and convex racing‑line optimization
+- Kinematic bicycle model with Pure Pursuit, Stanley, and MPPI controllers
+- Matplotlib UI, telemetry logging, and headless rendering
+- Optional ROS 2 node for real‑time integrations
 
-- **Performance**
-  - Efficient algorithms for real-time operation
-  - Optimized for embedded systems
-  - Minimal external dependencies
+## Core Components
+- `fmsim/utils.py` — I/O helpers (`load_cones_json()`, `car_triangle()`)
+- `fmsim/planner.py` — pairing (greedy/hungarian), smoothing (`laplacian_smooth()`, `spline_smooth()`), optimization (`optimization_based_racing_line()`), curvature
+- `fmsim/models.py` — `VehicleParams`, `BicycleKinematic`, controllers (`pure_pursuit_control`, `stanley_control`, `MPPIController`), `TelemetryLogger`
+- `fmsim/ros2_interface.py` — optional ROS 2 node (cones in, path/telemetry out)
+- `scripts/sim_headless.py` — off‑screen renderer producing `artifacts/track.png`
+- `main.py` — CLI and demo entrypoint
 
-## Installation
+Dependency fallbacks:
+- If SciPy unavailable ➜ Hungarian pairing falls back to greedy
+- If `UnivariateSpline` unavailable ➜ `spline_smooth()` falls back to linear/Laplacian
+- If CVXPY/solver fails ➜ `optimization_based_racing_line()` falls back to midline
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/fs-racing-line-optimizer.git
-   cd fs-racing-line-optimizer
-   ```
+## Quickstart
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Prerequisites
+- Python 3.7+ (3.10 recommended; CI-tested)
+- Optional: SciPy (pairing speedups), CVXPY (optimal racing line), ROS 2 (`rclpy`) for the node
+
+### Install
+```bash
+git clone https://github.com/<user>/fs-racing-line-optimizer.git
+cd fs-racing-line-optimizer
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .[dev]
+```
+
+### Hello World
+```python
+import numpy as np
+from fmsim.utils import load_cones_json
+from fmsim.planner import pair_cones_to_midline, laplacian_smooth
+from fmsim.models import VehicleParams, BicycleKinematic, pure_pursuit_control
+
+left, right = load_cones_json("data/sample_cones.json")
+mid  = pair_cones_to_midline(left, right, method="hungarian")
+path = laplacian_smooth(mid, corridor=(left, right))
+
+car   = BicycleKinematic(VehicleParams())
+state = np.array([path[0,0], path[0,1], 0.0, 5.0])
+steer, _ = pure_pursuit_control(state, path)
+```
 
 ## Usage
 
-### Basic Path Planning
+### CLI
+```bash
+python main.py --cones data/sample_cones.json \
+               --pairing hungarian --smoothing spline \
+               --controller stanley --noise --latency
+```
 
+### Flags
+- `--pairing`: greedy or hungarian cone pairing
+- `--smoothing`: laplacian, spline, or optimization
+- `--controller`: pure_pursuit, stanley, or mppi
+- `--noise`: enable IMU noise
+- `--latency`: inject control delay
+- `--demo`: run a feature showcase
+
+- Recommended baseline: `--pairing hungarian --smoothing spline --controller stanley` (defaults)
+  Defaults: pairing=hungarian, smoothing=spline, controller=stanley
+
+### Library
 ```python
-from fmsim.planner import pair_cones_to_midline, laplacian_smooth, curvature_discrete
-import numpy as np
-
-# Example cone positions
-left_cones = np.array([[0, 1], [1, 1.1], [2, 0.9], [3, 1.0]])
-right_cones = np.array([[0, -1], [1, -0.9], [2, -1.1], [3, -1.0]])
-
-# Generate midline path
-midline = pair_cones_to_midline(left_cones, right_cones)
-smoothed_path = laplacian_smooth(midline, corridor=(left_cones, right_cones))
-curvature = curvature_discrete(smoothed_path)
+from fmsim.planner import optimization_based_racing_line
+opt_line = optimization_based_racing_line(left, right, num_points=80)
 ```
 
-### Vehicle Control
+### Configuration
+- See Data Format for cones JSON schema.
+- Headless render: `scripts/sim_headless.py --cones data/sample_cones.json --out artifacts` or `make headless`.
 
-```python
-from fmsim.models import VehicleParams, BicycleKinematic, pure_pursuit_control
-import numpy as np
-
-# Initialize vehicle model
-params = VehicleParams(wheelbase=1.6, max_steer=np.deg2rad(35))
-vehicle = BicycleKinematic(params)
-
-# Initial state: [x, y, yaw, velocity]
-state = np.array([0.0, 0.0, 0.0, 5.0])
-path = np.array([[0, 0], [10, 0], [20, 5], [30, 10]])
-
-# Control loop
-for _ in range(100):
-    # Calculate steering command
-    steer, _ = pure_pursuit_control(state, path)
-    
-    # Update vehicle state (simplified)
-    state = vehicle.step(state, (steer, 0.0), dt=0.1)
-```
-
-## Improvements in v2.0
-
-### Core Enhancements
-- **Robust Cone Pairing**: Improved handling of uneven cone distributions
-- **Accurate Curvature Calculation**: Proper geometric curvature instead of simple second differences
-- **Stable Control**: Better handling of edge cases in the Pure Pursuit controller
-- **Numerical Stability**: Improved handling of edge cases and numerical precision
-
-### Performance Optimizations
-- KD-tree based nearest neighbor search for faster cone pairing
-- Early termination in smoothing algorithm when convergence is reached
-- More efficient path ordering algorithm
-
-### Code Quality
-- Comprehensive docstrings and type hints
-- Better error handling and input validation
-- More maintainable code structure
-
-## Testing
-
-Run the test suite with:
-
-```bash
-pytest tests/
-```
-
-## Dependencies
-
-- Python 3.7+
-- NumPy
-- SciPy (for KD-tree in cone pairing)
-- Matplotlib (for examples and visualization)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Virtual Environment (Recommended)
-
-To avoid system Python restrictions (PEP 668), use a virtual environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-## Development Install
-
-Install the library in editable mode so changes reflect immediately:
-
-```bash
-pip install -e .
-pip install -e ".[dev]"
-```
-
-## Run the Simulator
-
-```bash
-python main.py
-```
-
-The app loads cones from `data/sample_cones.json`, builds a midline via `pair_cones_to_midline()` and `laplacian_smooth()`, and simulates a car controlled by `pure_pursuit_control()` using the `BicycleKinematic` model.
-
-### Keyboard Controls
-
-- Space: Pause/Resume
-- Esc: Quit
-
-## Sample Track
-
-The default `data/sample_cones.json` now includes:
-
-- Tight S-curves and a chicane
-- Varying track widths (narrowing and widening)
-- Longer layout (~125 m) to stress-test controller and smoothing
-
-## Notable Changes (v2.0)
-
-- Pure Pursuit: speed-aware lookahead, vehicle-frame targeting, safer index selection
-- Bicycle model: yaw normalization and velocity update stability
-- Planner: KD-tree pairing, improved polyline ordering, convergence-based smoothing
-- Curvature: geometric curvature via derivatives for better fidelity
-- UI: fixed Matplotlib cache warning by setting `save_count` and `cache_frame_data`
-- Packaging: added `pyproject.toml` and `setup.py`; `pip install -e .` works
-
-## Troubleshooting
-
-- If `pip install -r requirements.txt` fails with externally-managed environment, use the Virtual Environment steps above.
-- If `pytest` is not found, install via your venv or system package manager, or run `pip install -e ".[dev]"`.
-
-## Command-line Options
-
-The simulator accepts the following argument:
-
-```bash
-python main.py --cones PATH/TO/CONES.json
-```
-
-- `--cones`: Path to a cones JSON file (defaults to `data/sample_cones.json`).
-
-## Cones JSON Format
-
-The expected schema is:
-
+## Data Format
+Cones JSON schema:
 ```json
 {
-  "left":  [[x0, y0], [x1, y1], ...],
-  "right": [[x0, y0], [x1, y1], ...]
+  "left": [[x, y], ...],
+  "right": [[x, y], ...]
 }
 ```
+Units: meters in a common 2D plane. Left/right arrays may differ in length.
+Type/shape: float arrays of shape (N,2).
+Edge cases: if either side is empty, midline falls back to an ordered polyline of all cones.
 
-- Coordinates are in meters in a common 2D plane.
-- Arrays can be of different lengths; the planner will pair greedily and order them.
+## Examples & Recipes
 
-## Repository Structure
+Compute curvature:
+```python
+from fmsim.planner import curvature_geometric
+kappa = curvature_geometric(path)
+```
 
-- `fmsim/models.py`: Vehicle parameters, kinematic bicycle, pure-pursuit controller
-- `fmsim/planner.py`: Cone pairing, polyline ordering, smoothing, curvature
-- `fmsim/ui.py`: Matplotlib-based visualization and animation
-- `fmsim/utils.py`: I/O utilities (e.g., `load_cones_json`)
-- `data/sample_cones.json`: Example track cones
-- `tests/`: Unit tests for planner and controller
-- `main.py`: Entry-point to run the simulator
+- Log telemetry to CSV with `TelemetryLogger`.
+- Swap controllers in the main loop to compare steering strategies.
+- Use `pair_cones_to_midline(..., method="greedy")` for minimal SciPy setups.
 
-## Changelog
+## API Quick Reference
+- Pairing: `pair_cones_to_midline(left, right, method='greedy'|'hungarian') -> (M,2)`
+- Smoothing: `laplacian_smooth(path, alpha=..., iters=..., corridor=(L,R))`; `spline_smooth(path, corridor=(L,R))`
+- Optimization: `optimization_based_racing_line(left, right, num_points=...) -> (M,2)`
+- Curvature: `curvature_geometric(path) -> (len(path),)`
+- Vehicle: `BicycleKinematic(VehicleParams(...)).step(state, (steer, accel), dt)`
+- Controllers: `pure_pursuit_control(state, path)`; `stanley_control(state, path)`; `MPPIController(...).control(state, path, dt)`
+- Telemetry: `TelemetryLogger().log(t, state, control, path)`; `save_to_file(file)`
 
-### v2.0
+## Architecture
+```mermaid
+graph TD
+    A[Cones JSON] --> B[Planner (pair + smooth)]
+    B --> C[Path]
+    C --> D[Controller]
+    D --> E[BicycleKinematic]
+    E --> C
+    E --> F[Telemetry]
+    E --> G[UI / Headless]
+```
 
-- Controller: speed-aware lookahead, vehicle-frame geometry, robust target selection
-- Model: yaw normalization, velocity non-negativity, steering clamp
-- Planner: KD-tree pairing, convergence-aware smoothing, geometric curvature
-- UI: animation cache warning fixed, minor layout polish
-- Packaging: editable install via `pyproject.toml` and `setup.py`
-- Data: challenging sample track with S-curves and chicanes
-- Docs: expanded README with setup, run, controls, and troubleshooting
+See `docs/design_notes.md` for algorithm notes.
 
-## Known Limitations / Future Work
+## Performance & Limits
+- Greedy pairing O(n²); Hungarian O(n³) on the cost matrix (uses SciPy; else greedy).
+- Spline smoothing uses SciPy `UnivariateSpline` (fallback to linear/Laplacian). Optimization uses CVXPY+OSQP; runtime grows with `num_points`.
+- Simulation uses dt=0.03 s (~33 Hz). Heavier controllers (e.g., MPPI) can reduce UI frame rate.
 
-- Pure pursuit can cut apexes aggressively on very tight S-curves; consider Stanley/MPPI
-- Smoothing is Laplacian-based; an optimization-based corridor solver could yield faster lines
-- No longitudinal tire/traction limits; current accel is a simple proportional target
-- No noise/latency in the loop; add for robustness testing
+## Roadmap
+- Hungarian cone pairing (completed)
+- Spline smoothing with corridor constraints
+- Deterministic IMU noise & telemetry logging
+- ROS 2 topic interface (see `docs/ros2_topics.md`)
+- More in `docs/roadmap.md`.
+
+## Contributing
+```bash
+pip install -e .[dev]
+flake8 fmsim main.py scripts tests
+pytest
+```
+
+Submit a PR with clear description and tests.
+
+Make targets:
+```bash
+make lint
+make test
+make check
+make run
+make headless
+```
+
+## Security
+Report vulnerabilities via GitHub Issues or directly to the maintainers. Automated dependency checks run in CI.
+
+## FAQ
+- **Install fails on system Python** — Create a venv (`python -m venv venv`) to bypass PEP 668 restrictions.
+- **SciPy/CVXPY import errors** — These are optional; install them or switch to greedy pairing and Laplacian smoothing.
+- **Matplotlib complains about display** — Use `scripts/sim_headless.py` for off‑screen rendering.
+- **Simulation drifts or oscillates** — Try the Stanley controller or reduce lookahead.
+- **Where’s the sample track?** — `data/sample_cones.json` contains an S‑curve and chicane track.
+
+## Optional next tweaks
+- pyproject: Consider bumping `requires-python` to ">=3.10" to match CI.
+- Polish: Add CI/coverage badges and embed `artifacts/track.png`.
+
+## License
+Distributed under the MIT License. See `LICENSE`.
+
+## Acknowledgements
+Inspired by a conversation with a Member of Formula Manipal
