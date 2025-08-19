@@ -5,10 +5,10 @@ import numpy as np
 
 def pair_cones_to_midline(cones_left, cones_right, method='greedy'):
     """Pair left/right cones to produce a raw midline.
-    
+
     Args:
         cones_left: Array of left cone positions
-        cones_right: Array of right cone positions  
+        cones_right: Array of right cone positions
         method: 'greedy' for nearest-neighbor (hungarian fallback to greedy)
     """
     L = np.array(cones_left, dtype=float)
@@ -79,10 +79,12 @@ def spline_smooth(path_xy, corridor=None, smoothing_factor=0.1, num_points=None)
     return laplacian_smooth(path_xy, corridor=corridor)
 
 
-def optimization_based_racing_line(left_cones, right_cones, num_points=50, 
-                                  curvature_weight=1.0, smoothness_weight=0.1):
+def optimization_based_racing_line(
+        left_cones, right_cones, num_points=50,
+        curvature_weight=1.0, smoothness_weight=0.1):
     """Fallback to standard pairing when cvxpy not available."""
-    print("Warning: Optimization-based racing line requires cvxpy. Falling back to standard pairing.")
+    print("Warning: Optimization-based racing line requires cvxpy. "
+          "Falling back to standard pairing.")
     return pair_cones_to_midline(left_cones, right_cones)
 
 
@@ -100,18 +102,18 @@ def curvature_geometric(path_xy):
     """Compute geometric curvature using derivatives."""
     if len(path_xy) < 3:
         return np.zeros(len(path_xy))
-    
+
     # Compute first and second derivatives using finite differences
     dx = np.gradient(path_xy[:, 0])
     dy = np.gradient(path_xy[:, 1])
     d2x = np.gradient(dx)
     d2y = np.gradient(dy)
-    
+
     # Geometric curvature formula: |x'y'' - y'x''| / (x'^2 + y'^2)^(3/2)
     numerator = np.abs(dx * d2y - dy * d2x)
     denominator = np.power(dx**2 + dy**2, 1.5)
-    
+
     # Avoid division by zero
     denominator = np.maximum(denominator, 1e-8)
-    
+
     return numerator / denominator
