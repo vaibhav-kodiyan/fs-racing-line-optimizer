@@ -39,10 +39,10 @@ deactivate nondestructive
 if [ "${OSTYPE:-}" = "cygwin" ] || [ "${OSTYPE:-}" = "msys" ] ; then
     # transform D:\path\to\venv to /d/path/to/venv on MSYS
     # and to /cygdrive/d/path/to/venv on Cygwin
-    export VIRTUAL_ENV=$(cygpath /home/vaibhav_kodiyan_/git_clone/fm_sim/fs-racing-line-optimizer/venv)
+    export VIRTUAL_ENV=$(cygpath /home/vaibhav_kodiyan_/projects/fs-racing-line-optimizer/venv)
 else
     # use the path as-is
-    export VIRTUAL_ENV=/home/vaibhav_kodiyan_/git_clone/fm_sim/fs-racing-line-optimizer/venv
+    export VIRTUAL_ENV=/home/vaibhav_kodiyan_/projects/fs-racing-line-optimizer/venv
 fi
 
 _OLD_VIRTUAL_PATH="$PATH"

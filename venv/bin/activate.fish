@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /home/vaibhav_kodiyan_/git_clone/fm_sim/fs-racing-line-optimizer/venv
+set -gx VIRTUAL_ENV /home/vaibhav_kodiyan_/projects/fs-racing-line-optimizer/venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

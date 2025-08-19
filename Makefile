@@ -1,7 +1,7 @@
 .PHONY: venv install lint test check run headless
 
 PY?=python3
-VENV=.venv
+VENV=venv
 
 venv:
 	$(PY) -m venv $(VENV)

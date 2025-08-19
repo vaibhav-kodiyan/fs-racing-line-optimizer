@@ -9,7 +9,7 @@ alias deactivate 'test $?_OLD_VIRTUAL_PATH != 0 && setenv PATH "$_OLD_VIRTUAL_PA
 # Unset irrelevant variables.
 deactivate nondestructive
 
-setenv VIRTUAL_ENV /home/vaibhav_kodiyan_/git_clone/fm_sim/fs-racing-line-optimizer/venv
+setenv VIRTUAL_ENV /home/vaibhav_kodiyan_/projects/fs-racing-line-optimizer/venv
 
 set _OLD_VIRTUAL_PATH="$PATH"
 setenv PATH "$VIRTUAL_ENV/"bin":$PATH"
