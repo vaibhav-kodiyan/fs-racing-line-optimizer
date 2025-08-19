@@ -1,4 +1,4 @@
-        """
+"""
 fs-racing-line-optimizer (package: fmsim)
 """
 __all__ = ["models", "planner", "utils", "ui"]

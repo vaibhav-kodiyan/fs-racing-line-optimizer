@@ -28,7 +28,8 @@ class BicycleKinematic:
         return np.array([Xn, Yn, yawn, vn], dtype=float)
 
 
-def pure_pursuit_control(state, path_xy, lookahead_base=2.0, lookahead_gain=0.1):
+def pure_pursuit_control(state, path_xy, lookahead_base=2.0,
+                         lookahead_gain=0.1):
     """Return (steer, target_index) using a simple Pure Pursuit geometry."""
     X, Y, yaw, v = state
     if len(path_xy) < 2:

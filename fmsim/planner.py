@@ -6,16 +6,17 @@ def pair_cones_to_midline(cones_left, cones_right):
     L = np.array(cones_left, dtype=float)
     R = np.array(cones_right, dtype=float)
     if len(L) == 0 or len(R) == 0:
-        all_pts = np.vstack([L, R]) if len(L) + len(R) > 0 else np.zeros((0, 2))
+        all_pts = (np.vstack([L, R]) if len(L) + len(R) > 0
+                   else np.zeros((0, 2)))
         return order_polyline(all_pts)
 
     used_R = np.zeros(len(R), dtype=bool)
     mids = []
-    for l in L:
-        d = np.linalg.norm(R - l, axis=1)
+    for cone_left in L:
+        d = np.linalg.norm(R - cone_left, axis=1)
         idx = int(np.argmin(d + used_R * 1e6))
         used_R[idx] = True
-        mids.append(0.5 * (l + R[idx]))
+        mids.append(0.5 * (cone_left + R[idx]))
     mids = np.array(mids)
     return order_polyline(mids)
 

@@ -1,5 +1,6 @@
 import numpy as np
-from fmsim.planner import pair_cones_to_midline, laplacian_smooth, curvature_discrete
+from fmsim.planner import (pair_cones_to_midline, laplacian_smooth,
+                           curvature_discrete)
 
 
 def test_pair_midline_straight():
@@ -16,7 +17,8 @@ def test_smooth_and_curvature_proxy():
     left = np.stack([xs, np.ones_like(xs)], axis=1)
     right = np.stack([xs, -np.ones_like(xs)], axis=1)
     mid = pair_cones_to_midline(left, right)
-    smooth = laplacian_smooth(mid, alpha=0.25, iters=50, corridor=(left, right))
+    smooth = laplacian_smooth(mid, alpha=0.25, iters=50,
+                              corridor=(left, right))
     assert smooth.shape == mid.shape
     curv = curvature_discrete(smooth)
     assert curv.shape[0] == smooth.shape[0]
