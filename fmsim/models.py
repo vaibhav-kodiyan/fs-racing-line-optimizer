@@ -150,18 +150,17 @@ def stanley_control(state, path_xy, k_e=0.3, k_v=10.0, wheelbase=1.6):
     heading_error = path_heading - yaw
     heading_error = np.arctan2(np.sin(heading_error), np.cos(heading_error))
 
-    # Cross-track error
+    # Cross-track error (signed)
     closest_point = path_xy[i_near]
     front_axle_pos = np.array([X + wheelbase * np.cos(yaw),
                               Y + wheelbase * np.sin(yaw)])
-    crosstrack_error = np.linalg.norm(front_axle_pos - closest_point)
-
-    # Determine sign of cross-track error
-    path_normal = np.array([-path_vec[1], path_vec[0]])
-    path_normal = path_normal / (np.linalg.norm(path_normal) + 1e-8)
+    # Calculate signed cross-track error using cross product
     error_vec = front_axle_pos - closest_point
-    if np.dot(error_vec, path_normal) < 0:
-        crosstrack_error = -crosstrack_error
+    # Normalize path vector to get consistent sign
+    path_vec_norm = path_vec / (np.linalg.norm(path_vec) + 1e-8)
+    # Cross product gives signed distance (positive = right of path, negative = left)
+    # Fixed sign convention: negative when car is left of path, positive when right
+    crosstrack_error = -np.cross(path_vec_norm, error_vec)
 
     # Stanley control law
     crosstrack_term = np.arctan2(k_e * crosstrack_error, k_v + v)
